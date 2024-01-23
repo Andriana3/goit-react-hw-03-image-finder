@@ -5,6 +5,7 @@ import { Button } from 'components/Button/Button';
 import { Loader } from 'components/Loader/Loader';
 import { addImages } from 'services/api';
 
+// ______________________________________________
 export class App extends Component {
   state = {
     images: [],
@@ -16,23 +17,26 @@ export class App extends Component {
   };
 
   async componentDidUpdate(prevProps, prevState) {
-    if (this.state.query !== prevState.query) {
-      this.setState({ images: [], isLoading: true });
+    const { query, page } = this.state;
+
+    if (query !== prevState.query || page !== prevState.page) {
+      this.setState({ isLoading: true });
 
       try {
-        const result = await addImages(this.state.query, 1);
+        const result = await addImages(query, page);
 
-        this.setState({
-          images: result.hits,
-          page: 1,
+        this.setState(prevState => ({
+          images:
+            prevState.page === 1
+              ? result.hits
+              : [...prevState.images, ...result.hits],
           totalHits: result.totalHits,
           isLoading: false,
           error: null,
-        });
+        }));
       } catch (error) {
         this.setState({
           images: [],
-          page: 1,
           totalHits: 0,
           isLoading: false,
           error: error,
@@ -41,19 +45,21 @@ export class App extends Component {
     }
   }
 
-  loadMore = async () => {
-    const { query, page } = this.state;
-    this.setState({ isLoading: true });
-    const result = await addImages(query, page + 1);
+  loadMore = () => {
     this.setState(prevState => ({
-      images: [...prevState.images, ...result.hits],
       page: prevState.page + 1,
-      isLoading: false,
     }));
   };
 
   handleSearch = query => {
-    this.setState({ query });
+    this.setState({
+      query,
+      images: [],
+      page: 1,
+      totalHits: 0,
+      isLoading: false,
+      error: null,
+    });
   };
 
   render() {
